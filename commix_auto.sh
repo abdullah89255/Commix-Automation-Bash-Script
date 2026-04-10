@@ -24,7 +24,7 @@ OUTPUT_DIR="./commix_results"
 BATCH="--batch"
 
 # ====== BUILD COMMAND ======
-CMD="python3 commix.py -u \"$URL\" --level=$LEVEL -v $VERBOSE --crawl=$CRAWL --tamper=$TAMPER $BATCH --output-dir=$OUTPUT_DIR"
+CMD="commix -u \"$URL\" --level=$LEVEL -v $VERBOSE --crawl=$CRAWL --tamper=$TAMPER $BATCH --output-dir=$OUTPUT_DIR"
 
 # ====== OPTIONAL PARAM ======
 if [ ! -z "$PARAM" ]; then
@@ -62,7 +62,7 @@ fi
 read -p "Use multiple targets file? (y/n): " MULTI
 if [ "$MULTI" == "y" ]; then
     read -p "Enter file path: " FILE
-    CMD="python3 commix.py -m $FILE --level=$LEVEL -v $VERBOSE --batch --output-dir=$OUTPUT_DIR"
+    CMD="commix -m $FILE --level=$LEVEL -v $VERBOSE --batch --output-dir=$OUTPUT_DIR"
 fi
 
 # ====== SHOW COMMAND ======
