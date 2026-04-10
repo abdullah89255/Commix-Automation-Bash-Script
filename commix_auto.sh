@@ -1,80 +1,140 @@
 #!/bin/bash
 
-# ===============================
-# 🔥 Commix Automation Script
-# ===============================
+# =========================================
+# 🔥 Commix Automation Script (Advanced)
+# =========================================
 
+# ====== HELP FUNCTION ======
+show_help() {
 echo "========================================="
-echo "   Commix Command Injection Scanner"
+echo " Commix Command Injection Scanner"
 echo "========================================="
+echo ""
+echo "Usage:"
+echo "  ./commix_auto.sh [options]"
+echo ""
+echo "Options:"
+echo "  -u, --url          Target URL"
+echo "  -p, --param        Parameter to test"
+echo "  -d, --data         POST data"
+echo "  -c, --cookie       Cookie value"
+echo "  --proxy            Use Burp proxy (127.0.0.1:8080)"
+echo "  --headers          Test User-Agent header"
+echo "  --fingerprint      Enable OS fingerprinting"
+echo "  -m, --multi        File with multiple targets"
+echo "  -l, --level        Scan level (1-5, default=3)"
+echo "  -v, --verbose      Verbosity (1-3, default=2)"
+echo "  --crawl            Crawl depth (default=2)"
+echo "  -o, --output       Output directory"
+echo "  -h, --help         Show this help menu"
+echo ""
+echo "Examples:"
+echo "  ./commix_auto.sh -u http://site.com/page.php?id=1"
+echo "  ./commix_auto.sh -u http://site.com -p id --level 5"
+echo "  ./commix_auto.sh -m targets.txt"
+echo ""
+exit 0
+}
 
-# ====== INPUT ======
-read -p "Enter target URL: " URL
-read -p "Enter parameter to test (optional): " PARAM
-read -p "Enter POST data (optional): " DATA
-read -p "Enter cookie (optional): " COOKIE
-read -p "Use proxy? (y/n): " USE_PROXY
-
-# ====== DEFAULT SETTINGS ======
+# ====== DEFAULT VALUES ======
 LEVEL=3
 VERBOSE=2
 CRAWL=2
-TAMPER="space2ifs"
 OUTPUT_DIR="./commix_results"
-BATCH="--batch"
+TAMPER="space2ifs"
+
+# ====== ARGUMENT PARSER ======
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -u|--url)
+            URL="$2"
+            shift 2
+            ;;
+        -p|--param)
+            PARAM="$2"
+            shift 2
+            ;;
+        -d|--data)
+            DATA="$2"
+            shift 2
+            ;;
+        -c|--cookie)
+            COOKIE="$2"
+            shift 2
+            ;;
+        --proxy)
+            PROXY="yes"
+            shift
+            ;;
+        --headers)
+            HEADERS="yes"
+            shift
+            ;;
+        --fingerprint)
+            FINGERPRINT="yes"
+            shift
+            ;;
+        -m|--multi)
+            MULTI_FILE="$2"
+            shift 2
+            ;;
+        -l|--level)
+            LEVEL="$2"
+            shift 2
+            ;;
+        -v|--verbose)
+            VERBOSE="$2"
+            shift 2
+            ;;
+        --crawl)
+            CRAWL="$2"
+            shift 2
+            ;;
+        -o|--output)
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *)
+            echo "Unknown option: $1"
+            show_help
+            ;;
+    esac
+done
+
+# ====== INTERACTIVE MODE (if no URL & no file) ======
+if [[ -z "$URL" && -z "$MULTI_FILE" ]]; then
+    echo "No arguments provided. Switching to interactive mode..."
+    read -p "Enter target URL: " URL
+fi
 
 # ====== BUILD COMMAND ======
-CMD="commix -u \"$URL\" --level=$LEVEL -v $VERBOSE --crawl=$CRAWL --tamper=$TAMPER $BATCH --output-dir=$OUTPUT_DIR"
-
-# ====== OPTIONAL PARAM ======
-if [ ! -z "$PARAM" ]; then
-    CMD="$CMD -p $PARAM"
+if [[ ! -z "$MULTI_FILE" ]]; then
+    CMD="commix -m $MULTI_FILE --level=$LEVEL -v $VERBOSE --batch --output-dir=$OUTPUT_DIR"
+else
+    CMD="commix -u \"$URL\" --level=$LEVEL -v $VERBOSE --crawl=$CRAWL --tamper=$TAMPER --batch --output-dir=$OUTPUT_DIR"
 fi
 
-# ====== POST DATA ======
-if [ ! -z "$DATA" ]; then
-    CMD="$CMD --data=\"$DATA\""
-fi
+# ====== OPTIONAL FLAGS ======
+[ ! -z "$PARAM" ] && CMD="$CMD -p $PARAM"
+[ ! -z "$DATA" ] && CMD="$CMD --data=\"$DATA\""
+[ ! -z "$COOKIE" ] && CMD="$CMD --cookie=\"$COOKIE\""
+[ "$PROXY" == "yes" ] && CMD="$CMD --proxy=\"http://127.0.0.1:8080\""
+[ "$HEADERS" == "yes" ] && CMD="$CMD --headers=\"User-Agent: commix-test\""
+[ "$FINGERPRINT" == "yes" ] && CMD="$CMD --fingerprint"
 
-# ====== COOKIE ======
-if [ ! -z "$COOKIE" ]; then
-    CMD="$CMD --cookie=\"$COOKIE\""
-fi
-
-# ====== PROXY ======
-if [ "$USE_PROXY" == "y" ]; then
-    CMD="$CMD --proxy=\"http://127.0.0.1:8080\""
-fi
-
-# ====== HEADER TEST ======
-read -p "Test headers (User-Agent)? (y/n): " HEADER_TEST
-if [ "$HEADER_TEST" == "y" ]; then
-    CMD="$CMD --headers=\"User-Agent: commix-test\""
-fi
-
-# ====== FINGERPRINT ======
-read -p "Enable OS fingerprinting? (y/n): " FINGERPRINT
-if [ "$FINGERPRINT" == "y" ]; then
-    CMD="$CMD --fingerprint"
-fi
-
-# ====== MULTI TARGET ======
-read -p "Use multiple targets file? (y/n): " MULTI
-if [ "$MULTI" == "y" ]; then
-    read -p "Enter file path: " FILE
-    CMD="commix -m $FILE --level=$LEVEL -v $VERBOSE --batch --output-dir=$OUTPUT_DIR"
-fi
-
-# ====== SHOW COMMAND ======
+# ====== EXECUTE ======
 echo ""
-echo "Running Command:"
+echo "========================================="
+echo " Running Commix Scan..."
+echo "========================================="
 echo "$CMD"
 echo ""
 
-# ====== EXECUTE ======
 eval $CMD
 
-# ====== DONE ======
 echo ""
-echo "Scan completed!"
-echo "Results saved in: $OUTPUT_DIR"
+echo "✅ Scan completed!"
+echo "📁 Results saved in: $OUTPUT_DIR"
